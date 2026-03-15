@@ -1,6 +1,6 @@
-# NotepadX — Agent Workflow
+# dropPod — Agent Workflow
 
-This project uses specialized agents. Consult them at the right phase — don't skip steps.
+This project uses specialized agents as quality gates. Consult them at the right phase — don't skip steps.
 
 ## The Team
 
@@ -41,7 +41,7 @@ When implementing a new feature or significant change, follow this sequence:
 
 ## Quick Reference: When to Invoke Each Agent
 
-**`@pm`** — "Should we build this?" / "How does this compare to Sublime/Zed?" / "Write the changelog entry."
+**`@pm`** — "Should we build this?" / "What's the user impact?" / "Write the changelog entry."
 
 **`@ux-designer`** — "How should this feature feel?" / "What's the interaction flow?" / "Accessibility review."
 

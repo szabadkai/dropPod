@@ -1,0 +1,13 @@
+.github/**
+.vscode/**
+.graphite/**
+src/**
+docs/**
+node_modules/**
+esbuild.mjs
+tsconfig.json
+.gitignore
+**/*.ts
+**/*.map
+media/icon.svg
+media/icon.png
