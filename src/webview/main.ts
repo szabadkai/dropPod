@@ -29,7 +29,6 @@ let dragSrcId: string | null = null;
 const cardsEl = document.getElementById("cards")!;
 const generateBtn = document.getElementById("generateBtn")!;
 
-// Listen for messages from extension
 window.addEventListener("message", (e) => {
   const msg = e.data;
   if (msg.type === "update") {
@@ -47,23 +46,25 @@ function render(): void {
   cardsEl.innerHTML = "";
 
   if (agents.length === 0) {
-    cardsEl.innerHTML = '<div class="empty">No handovers defined. Your agents will work fine without them — handovers are optional.</div>';
+    cardsEl.innerHTML = `
+      <div class="empty">
+        Add agents from the catalog to get started.<br>
+        <span style="font-size:11px;opacity:0.6">Flow connections are optional — agents work fine without them.</span>
+      </div>
+    `;
     return;
   }
 
   agents.forEach((agent, i) => {
-    // Connector arrow between cards
+    // Straight connector between cards
     if (i > 0) {
       const connector = document.createElement("div");
       connector.className = "connector";
-      const prevAgent = agents[i - 1];
-      const h = handovers.find(
-        (ho) => ho.fromAgentId === prevAgent.id && ho.toAgentId === agent.id
-      );
-      connector.textContent = h?.requiresApproval ? "🔒 ↓" : "↓";
-      if (h?.requiresApproval) {
-        connector.classList.add("approved");
-      }
+      connector.innerHTML = `
+        <div class="connector-line"></div>
+        <div class="connector-chevron">&#9660;</div>
+        <div class="connector-line"></div>
+      `;
       cardsEl.appendChild(connector);
     }
 
@@ -102,52 +103,82 @@ function render(): void {
       }
     });
 
-    // Header
+    // Drag handle
+    const dragHandle = document.createElement("div");
+    dragHandle.className = "drag-handle";
+    dragHandle.textContent = "⠿";
+    dragHandle.title = "Drag to reorder";
+    dragHandle.setAttribute("aria-hidden", "true");
+    card.appendChild(dragHandle);
+
+    // Card body
+    const body = document.createElement("div");
+    body.className = "card-body";
+
+    // Header: name + category badge
     const header = document.createElement("div");
     header.className = "card-header";
+
     const name = document.createElement("span");
     name.className = "card-name";
     name.textContent = agent.name;
     header.appendChild(name);
-    card.appendChild(header);
+
+    if (agent.category) {
+      const badge = document.createElement("span");
+      badge.className = "card-badge";
+      badge.textContent = agent.category;
+      header.appendChild(badge);
+    }
+    body.appendChild(header);
 
     // Description
-    const desc = document.createElement("div");
-    desc.className = "card-desc";
-    desc.textContent = agent.description.slice(0, 120);
-    card.appendChild(desc);
+    if (agent.description) {
+      const desc = document.createElement("div");
+      desc.className = "card-desc";
+      desc.textContent = agent.description.slice(0, 120);
+      body.appendChild(desc);
+    }
 
     // Handover section
     const section = document.createElement("div");
     section.className = "handover-section";
 
-    const agentHandovers = handovers.filter(
-      (h) => h.fromAgentId === agent.id
-    );
+    const agentHandovers = handovers.filter((h) => h.fromAgentId === agent.id);
 
-    agentHandovers.forEach((h) => {
-      section.appendChild(createHandoverRow(agent.id, h));
-    });
+    if (agentHandovers.length > 0) {
+      const label = document.createElement("div");
+      label.className = "handover-label";
+      label.textContent = "Connections";
+      section.appendChild(label);
 
-    // Add handover button
-    const addBtn = document.createElement("button");
-    addBtn.className = "add-handover secondary";
-    addBtn.textContent = "+ Add handover";
-    addBtn.addEventListener("click", () => {
-      const otherAgents = agents.filter((a) => a.id !== agent.id);
-      if (otherAgents.length === 0) return;
-      handovers.push({
-        fromAgentId: agent.id,
-        toAgentId: otherAgents[0].id,
-        prompt: "",
-        requiresApproval: false,
+      agentHandovers.forEach((h) => {
+        section.appendChild(createHandoverRow(agent.id, h));
       });
-      saveHandovers();
-      render();
-    });
-    section.appendChild(addBtn);
-    card.appendChild(section);
+    }
 
+    // Add connection button (only when other agents exist)
+    const otherAgents = agents.filter((a) => a.id !== agent.id);
+    if (otherAgents.length > 0) {
+      const addBtn = document.createElement("button");
+      addBtn.className = "btn-add-connection";
+      addBtn.innerHTML = `<span style="font-size:14px;line-height:1">+</span> Add connection`;
+      addBtn.title = "Add a handover connection from this agent";
+      addBtn.addEventListener("click", () => {
+        handovers.push({
+          fromAgentId: agent.id,
+          toAgentId: otherAgents[0].id,
+          prompt: "",
+          requiresApproval: false,
+        });
+        saveHandovers();
+        render();
+      });
+      section.appendChild(addBtn);
+    }
+
+    body.appendChild(section);
+    card.appendChild(body);
     cardsEl.appendChild(card);
   });
 }
@@ -156,14 +187,15 @@ function createHandoverRow(fromId: string, h: Handover): HTMLElement {
   const row = document.createElement("div");
   row.className = "handover-row";
 
-  // Arrow label
+  // Arrow
   const arrow = document.createElement("span");
+  arrow.className = "flow-arrow";
   arrow.textContent = "→";
   row.appendChild(arrow);
 
-  // Target dropdown
+  // Target agent dropdown
   const select = document.createElement("select");
-  select.setAttribute("aria-label", "Handover target agent");
+  select.setAttribute("aria-label", "Target agent");
   agents
     .filter((a) => a.id !== fromId)
     .forEach((a) => {
@@ -180,39 +212,44 @@ function createHandoverRow(fromId: string, h: Handover): HTMLElement {
   });
   row.appendChild(select);
 
-  // Prompt input
+  // Separator dot
+  const dot = document.createElement("span");
+  dot.style.cssText = "color:var(--muted);font-size:11px;flex-shrink:0;opacity:0.5";
+  dot.textContent = "·";
+  row.appendChild(dot);
+
+  // Optional context input
   const input = document.createElement("input");
   input.type = "text";
-  input.placeholder = "Handover prompt (optional)";
+  input.placeholder = "optional context…";
   input.value = h.prompt || "";
-  input.setAttribute("aria-label", "Handover prompt");
+  input.setAttribute("aria-label", "Handover context");
   input.addEventListener("change", () => {
     h.prompt = input.value;
     saveHandovers();
   });
   row.appendChild(input);
 
-  // Approval toggle
-  const toggle = document.createElement("label");
-  toggle.className = "approval-toggle";
-  const checkbox = document.createElement("input");
-  checkbox.type = "checkbox";
-  checkbox.checked = h.requiresApproval;
-  checkbox.setAttribute("aria-label", "Requires approval");
-  checkbox.addEventListener("change", () => {
-    h.requiresApproval = checkbox.checked;
+  // Approval pill toggle (replaces checkbox)
+  const pill = document.createElement("button");
+  pill.className = "approval-pill" + (h.requiresApproval ? " active" : "");
+  pill.title = h.requiresApproval
+    ? "Requires human approval — click to set auto"
+    : "Auto handover — click to require approval";
+  pill.innerHTML = h.requiresApproval ? "🔒&nbsp;Approval" : "🔓&nbsp;Auto";
+  pill.addEventListener("click", () => {
+    h.requiresApproval = !h.requiresApproval;
     saveHandovers();
     render();
   });
-  toggle.appendChild(checkbox);
-  toggle.appendChild(document.createTextNode("🔒"));
-  row.appendChild(toggle);
+  row.appendChild(pill);
 
   // Remove button
   const removeBtn = document.createElement("button");
-  removeBtn.className = "remove-btn";
-  removeBtn.textContent = "×";
-  removeBtn.title = "Remove handover";
+  removeBtn.className = "btn-remove";
+  removeBtn.textContent = "✕";
+  removeBtn.title = "Remove connection";
+  removeBtn.setAttribute("aria-label", "Remove connection");
   removeBtn.addEventListener("click", () => {
     const idx = handovers.indexOf(h);
     if (idx >= 0) handovers.splice(idx, 1);
