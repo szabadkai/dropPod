@@ -109,15 +109,19 @@ export class WorkflowWebview {
       --error: var(--vscode-errorForeground);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: var(--vscode-font-family); font-size: var(--vscode-font-size, 13px); color: var(--card-fg); padding: 20px 24px; max-width: 640px; }
+    body { font-family: var(--vscode-font-family); font-size: var(--vscode-font-size, 13px); color: var(--card-fg); padding: 20px 24px; }
 
     h1 { font-size: 16px; font-weight: 600; margin-bottom: 2px; }
     .subtitle { font-size: 12px; color: var(--muted); margin-bottom: 24px; }
 
     .empty { color: var(--muted); font-size: 13px; padding: 48px 0; text-align: center; line-height: 1.8; }
 
+    /* Flow wrapper */
+    .dag-wrapper { position: relative; overflow-x: auto; }
+
     /* Flow container */
-    #cards { display: flex; flex-direction: column; align-items: stretch; }
+    #cards { position: relative; z-index: 1; }
+    #svg-overlay { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 0; display: block; overflow: visible; }
 
     /* Agent card */
     .card {
@@ -125,9 +129,10 @@ export class WorkflowWebview {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       border-radius: 8px; overflow: hidden;
-      transition: border-color 0.12s;
+      transition: border-color 0.12s, left 0.3s ease-out, top 0.3s ease-out;
     }
     .card:hover { border-color: var(--accent); }
+    .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     .card.dragging { opacity: 0.35; border-style: dashed; }
 
     /* Drag handle */
@@ -205,13 +210,24 @@ export class WorkflowWebview {
     }
     .btn-add-connection:hover { border-color: var(--accent); color: var(--accent); border-style: solid; }
 
-    /* Straight connector between cards */
-    .connector {
-      display: flex; flex-direction: column; align-items: center;
-      padding: 4px 0; gap: 0;
+    /* Disconnected separator */
+    .disconnected-separator {
+      border-top: 1px dashed var(--card-border);
+      padding-top: 8px; margin-bottom: 8px;
     }
-    .connector-line { width: 2px; height: 14px; background: var(--card-border); }
-    .connector-chevron { font-size: 10px; color: var(--muted); line-height: 1; margin: -1px 0; }
+    .disconnected-label {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--muted);
+    }
+
+    /* Disconnected card style */
+    .card.disconnected { border-style: dashed; border-color: var(--card-border); opacity: 0.6; }
+    .card.disconnected:hover { opacity: 1; }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      .card { transition: border-color 0.12s; }
+    }
 
     /* Actions */
     .actions { margin-top: 24px; display: flex; align-items: center; gap: 12px; }
@@ -229,7 +245,10 @@ export class WorkflowWebview {
 <body>
   <h1>Workflow Editor</h1>
   <p class="subtitle">Connections between agents are optional — agents work independently by default.</p>
-  <div id="cards"></div>
+  <div class="dag-wrapper">
+    <svg id="svg-overlay" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="cards"></div>
+  </div>
   <div class="actions">
     <button id="generateBtn" class="btn-primary">&#9654; Generate Agent Files</button>
   </div>

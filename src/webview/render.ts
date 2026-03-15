@@ -35,22 +35,22 @@ export function renderSvgOverlay(
   width: number,
   height: number
 ): void {
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
   svg.setAttribute("width", String(width));
   svg.setAttribute("height", String(height));
   svg.innerHTML = "";
 
+  // Read computed CSS variable values for SVG use
+  const rootStyle = getComputedStyle(document.documentElement);
+  const borderColor = rootStyle.getPropertyValue("--card-border").trim() || "#585858";
+  const accentColor = rootStyle.getPropertyValue("--accent").trim() || "#007acc";
+
   // Arrowhead marker definition
   const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-  defs.innerHTML = `
-    <marker id="arrow" viewBox="0 0 6 4" refX="6" refY="2"
-      markerWidth="6" markerHeight="4" orient="auto-start-reverse">
-      <path d="M0,0 L6,2 L0,4 Z" fill="var(--card-border)" />
-    </marker>
-    <marker id="arrow-hover" viewBox="0 0 6 4" refX="6" refY="2"
-      markerWidth="6" markerHeight="4" orient="auto-start-reverse">
-      <path d="M0,0 L6,2 L0,4 Z" fill="var(--accent)" />
-    </marker>
-  `;
+  const marker = createMarker("arrow", borderColor);
+  const markerHover = createMarker("arrow-hover", accentColor);
+  defs.appendChild(marker);
+  defs.appendChild(markerHover);
   svg.appendChild(defs);
 
   const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -61,7 +61,7 @@ export function renderSvgOverlay(
     const d = bezierPath(c.startX, c.startY, c.endX, c.endY);
     path.setAttribute("d", d);
     path.setAttribute("fill", "none");
-    path.setAttribute("stroke", "var(--card-border)");
+    path.setAttribute("stroke", borderColor);
     path.setAttribute("stroke-width", "1.5");
     path.setAttribute("marker-end", "url(#arrow)");
     path.setAttribute("data-from", c.fromId);
@@ -75,6 +75,22 @@ export function renderSvgOverlay(
   }
 
   svg.appendChild(group);
+}
+
+function createMarker(id: string, color: string): SVGMarkerElement {
+  const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+  marker.setAttribute("id", id);
+  marker.setAttribute("viewBox", "0 0 6 4");
+  marker.setAttribute("refX", "6");
+  marker.setAttribute("refY", "2");
+  marker.setAttribute("markerWidth", "6");
+  marker.setAttribute("markerHeight", "4");
+  marker.setAttribute("orient", "auto-start-reverse");
+  const arrow = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  arrow.setAttribute("d", "M0,0 L6,2 L0,4 Z");
+  arrow.setAttribute("fill", color);
+  marker.appendChild(arrow);
+  return marker;
 }
 
 function bezierPath(x1: number, y1: number, x2: number, y2: number): string {
@@ -105,6 +121,8 @@ export function setupHoverHighlighting(
 }
 
 function highlightConnections(svg: SVGSVGElement, agentId: string): void {
+  const rootStyle = getComputedStyle(document.documentElement);
+  const accentColor = rootStyle.getPropertyValue("--accent").trim() || "#007acc";
   const paths = svg.querySelectorAll("path[data-from], path[data-to]");
   paths.forEach((p) => {
     const pathEl = p as SVGPathElement;
@@ -112,7 +130,7 @@ function highlightConnections(svg: SVGSVGElement, agentId: string): void {
     const to = pathEl.getAttribute("data-to");
     if (from === agentId || to === agentId) {
       pathEl.style.opacity = "1";
-      pathEl.setAttribute("stroke", "var(--accent)");
+      pathEl.setAttribute("stroke", accentColor);
       pathEl.setAttribute("stroke-width", "2");
       pathEl.setAttribute("marker-end", "url(#arrow-hover)");
     } else {
@@ -122,11 +140,13 @@ function highlightConnections(svg: SVGSVGElement, agentId: string): void {
 }
 
 function clearHighlights(svg: SVGSVGElement): void {
+  const rootStyle = getComputedStyle(document.documentElement);
+  const borderColor = rootStyle.getPropertyValue("--card-border").trim() || "#585858";
   const paths = svg.querySelectorAll("path[data-from], path[data-to]");
   paths.forEach((p) => {
     const pathEl = p as SVGPathElement;
     pathEl.style.opacity = "0.7";
-    pathEl.setAttribute("stroke", "var(--card-border)");
+    pathEl.setAttribute("stroke", borderColor);
     pathEl.setAttribute("stroke-width", "1.5");
     pathEl.setAttribute("marker-end", "url(#arrow)");
   });
