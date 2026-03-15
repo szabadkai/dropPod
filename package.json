@@ -1,0 +1,140 @@
+{
+  "name": "droppod",
+  "displayName": "dropPod — Agent Team Builder",
+  "description": "Assemble a Copilot agent team for your project from curated community sources, define handovers and approval flows, and generate agent files.",
+  "version": "0.1.0",
+  "publisher": "droppod",
+  "license": "MIT",
+  "icon": "media/icon.svg",
+  "engines": {
+    "vscode": "^1.106.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "droppod",
+          "title": "dropPod",
+          "icon": "$(rocket)"
+        }
+      ]
+    },
+    "views": {
+      "droppod": [
+        {
+          "id": "droppod.catalog",
+          "name": "Agent Catalog"
+        },
+        {
+          "id": "droppod.team",
+          "name": "My Team"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "droppod.refreshCatalog",
+        "title": "Refresh Agent Catalog",
+        "category": "dropPod",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "droppod.addToTeam",
+        "title": "Add to Team",
+        "category": "dropPod",
+        "icon": "$(add)"
+      },
+      {
+        "command": "droppod.removeFromTeam",
+        "title": "Remove from Team",
+        "category": "dropPod",
+        "icon": "$(remove)"
+      },
+      {
+        "command": "droppod.editWorkflow",
+        "title": "Edit Workflow",
+        "category": "dropPod",
+        "icon": "$(symbol-event)"
+      },
+      {
+        "command": "droppod.generateFiles",
+        "title": "Generate Agent Files",
+        "category": "dropPod",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "droppod.clearTeam",
+        "title": "Clear All Agents",
+        "category": "dropPod",
+        "icon": "$(clear-all)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "droppod.refreshCatalog",
+          "when": "view == droppod.catalog",
+          "group": "navigation"
+        },
+        {
+          "command": "droppod.generateFiles",
+          "when": "view == droppod.team",
+          "group": "navigation@1"
+        },
+        {
+          "command": "droppod.editWorkflow",
+          "when": "view == droppod.team",
+          "group": "navigation@2"
+        },
+        {
+          "command": "droppod.clearTeam",
+          "when": "view == droppod.team",
+          "group": "2_workspace"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "droppod.addToTeam",
+          "when": "view == droppod.catalog && viewItem == agent",
+          "group": "inline"
+        },
+        {
+          "command": "droppod.removeFromTeam",
+          "when": "view == droppod.team && viewItem == teamAgent",
+          "group": "inline"
+        },
+        {
+          "command": "droppod.removeFromTeam",
+          "when": "view == droppod.team && viewItem == teamAgent",
+          "group": "7_modification"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "droppod.team",
+        "contents": "Browse the Agent Catalog above, then click + to add agents to your team.\n[Generate Agent Files](command:droppod.generateFiles)"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "lint": "tsc --noEmit",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.106.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.0"
+  },
+  "dependencies": {
+    "yaml": "^2.6.0"
+  }
+}
